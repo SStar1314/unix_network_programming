@@ -1,5 +1,7 @@
 #include "unp.h"
 
+void sig_chld(int signo);
+
 int main(int argc, char **argv)
 {
 	int  listenfd, connfd;
@@ -22,11 +24,11 @@ int main(int argc, char **argv)
 		if ( (childpid = Fork()) == 0 ) {
 			Close(listenfd);
 			str_echo_1(connfd);
+		Close(connfd);
 			exit(0);
 		}	
-		Close(connfd);
 	
-		sig_chld(SIGCHLD);
+		Signal(SIGCHLD, sig_chld);
 	}
 }
 
@@ -35,7 +37,11 @@ void sig_chld(int signo)
 	pid_t pid;
 	int  stat;
 	
-	pid = wait(&stat);
+	pid = wait(&stat);     				// block current process until the first dead sub-process send signal
+	/*  better to use un-block function, because wait function not able to handle all sub-process dead signal when many sub-process dead at same time
+ 		while ( (pid = waitpid(-1, &stat, WNOHANG)) > 0 )	
+			 printf("child %d terminated\n", pid);
+ 	*/
 	printf("child %d terminated\n", pid);
 	
 	return;
